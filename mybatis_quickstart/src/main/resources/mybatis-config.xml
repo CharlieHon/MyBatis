@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!--配置MyBatis自带的日志输出，可以查看原生的sql，该配置应放在最前面-->
+    <settings>
+        <setting name="logImpl" value="STDOUT_LOGGING"/>
+    </settings>
+
+    <!--配置别名，降低冗余的全限定类名书写-->
+    <typeAliases>
+        <typeAlias alias="Monster" type="com.charlie.entity.Monster"/>
+    </typeAliases>
+
+    <environments default="development">
+        <environment id="development">
+            <!--配置事务管理器-->
+            <transactionManager type="JDBC"/>
+            <!--配置数据源-->
+            <dataSource type="POOLED">
+                <!--配置驱动-->
+                <property name="driver" value="com.mysql.jdbc.Driver"/>
+                <!--配置连接mysql的url
+                1. jdbc:mysql 连接协议
+                2. 127.0.0.1:3306：指定连接mysql的ip+port
+                3. mybatis：连接的DB
+                4. useSSL=true：表示使用安全连接
+                5. &amp;表示&符号，用于连接参数，防止解析错误
+                6. useUnicode=true：使用unicode，防止编码错误
+                7. characterEncoding=UTF-8：指定使用utf-8，防止中文乱码
+                8. 不需要记忆，理解即可
+                -->
+                <property name="url" value="jdbc:mysql://127.0.0.1:3306/mybatis?useSSL=true&amp;useUnicode=true&amp;characterEncoding=UTF-8"/>
+                <property name="username" value="root"/>
+                <property name="password" value="hsp"/>
+            </dataSource>
+        </environment>
+    </environments>
+    <!--
+    1. 这里配置需要关联的Mapper.xml
+    2. 这里可以通过copy path from source root
+    -->
+    <mappers>
+        <mapper resource="com/charlie/mapper/MonsterMapper.xml"/>
+    </mappers>
+</configuration>

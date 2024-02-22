@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+1. 这是一个mapper xml文件
+2. 该文件可以去实现对应的接口的方法
+3. namespace指定该xml文件和哪个接口对应
+-->
+<mapper namespace="com.charlie.mapper.MonsterMapper">
+    <!--配置addMonster
+    1. id="addMonster"就是对应接口的方法
+    2. parameterType="com.charlie.entity.Monster" 放入的形参的类型
+    3. 注意："com.charlie.entity.Monster"可以简写
+    4. 写入sql语句，建议现在sqlyog写，测试通过后再拿来使用
+    5. (`age`, `birthday`, `email`, `gender`, `name`, `salary`) 表的字段
+    6. (#{age}, #{birthday}, #{email}, #{gender}, #{name}, #{salary}) 是从传入的对象monster的属性来的
+    7. #{age} 对应monster的属性名，其它同
+    -->
+    <insert id="addMonster" parameterType="Monster" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `monster`(`age`, `birthday`, `email`, `gender`, `name`, `salary`) VALUES
+            (#{age}, #{birthday}, #{email}, #{gender}, #{name}, #{salary});
+    </insert>
+
+    <!--配置/实现delMonster方法
+    1. 这里的Integer，是Java类型 java.lang.Integer，可以简写
+    2. 这里写入delete语句
+    -->
+    <delete id="delMonster" parameterType="Integer">
+        DELETE FROM `monster` WHERE id=#{id}
+    </delete>
+
+    <!--配置实现updateMonster
+    1. com.charlie.entity.Monster 可以简写
+    -->
+    <update id="updateMonster" parameterType="Monster">
+        UPDATE `monster` SET `age`=#{age}, `birthday`=#{birthday}, `email`=#{email}, `gender`=#{gender}, `name`=#{name},
+                `salary`=#{salary} WHERE `id`=#{id};
+    </update>
+
+    <!--配置实现getMonsterById-->
+    <select id="getMonsterById" parameterType="Integer" resultType="Monster">
+        SELECT * FROM `monster` WHERE `id`=#{id};
+    </select>
+
+    <!--配置/实现findAllMonsters
+    1. 期望从这条语句中返回结果的类全限定名或别名。
+    2. 如果返回的是集合，那应该设置为集合包含的类型(如Monster)，而不是集合本身的类型(如List)
+    -->
+    <select id="findAllMonsters" resultType="Monster">
+        SELECT * FROM `monster`;
+    </select>
+</mapper>
