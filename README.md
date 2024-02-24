@@ -524,4 +524,271 @@ public class MonsterMapperTest {
 
 ## 原生API和注解的方式
 
+### MyBatis原生API调用
 
+- 将增删改查，使用MyBatis原生的API完成，就是直接通过`SqlSession`接口的方法来完成
+  - 原生API中的参数 `String statement` 指的是调用方法的全名，
+      如 `com.charlie.mapper.MonsterMapper.addMonster`，指的是接口的addMonster方法
+  - ![img_10.png](img_10.png)
+
+```java
+package com.charlie.mapper;
+
+// 演示使用MyBatis原生API操作
+public class MyBatisNativeTest {
+    private SqlSession sqlSession;
+    @Before
+    public void init() {
+        sqlSession = MyBatisUtils.getSqlSession();
+        // sqlSession返回的对象是DefaultSqlSession
+        System.out.println("sqlSession=" + sqlSession.getClass());
+    }
+
+    @Test
+    public void myBatisNativeCrud() {
+        // 添加
+        /**
+         *     public int insert(String statement, Object parameter) {
+         *         return this.update(statement, parameter);
+         *     }
+         *     statement:就是接口方法的完整声明
+         *     parameter：传入参数
+         */
+        //Monster monster = new Monster();
+        //monster.setAge(10);
+        //monster.setBirthday(new Date());
+        //monster.setEmail("kiki@qq.com");
+        //monster.setGender(0);
+        //monster.setName("黄风怪");
+        //monster.setSalary(1010.0);
+        //
+        //int insert = sqlSession.insert("com.charlie.mapper.MonsterMapper.addMonster", monster);
+        //System.out.println("insert=" + insert);
+
+        // 删除
+        //int delete = sqlSession.delete("com.charlie.mapper.MonsterMapper.delMonster", 6);
+        //System.out.println("delete=" + delete);
+
+        // 修改
+        //Monster monster = new Monster();
+        //monster.setId(5);       // 要有id，不然不知道要修改哪个数据
+        //monster.setAge(10);
+        //monster.setBirthday(new Date());
+        //monster.setEmail("kiki@qq.com");
+        //monster.setGender(0);
+        //monster.setName("黄风怪");
+        //monster.setSalary(1010.0);
+        //int update = sqlSession.update("com.charlie.mapper.MonsterMapper.updateMonster", monster);
+        //System.out.println("update=" + update);
+
+        // 查询
+        List<Monster> monsters = sqlSession.selectList("com.charlie.mapper.MonsterMapper.findAllMonsters");
+        for (Monster monster : monsters) {
+            System.out.println("monster=" + monster);
+        }
+
+        // 如果是增删改，需要提交事务
+        if (sqlSession != null) {
+            sqlSession.commit();    // 查询的时候，可以不用提交
+            sqlSession.close();
+        }
+        System.out.println("保存成功...");
+    }
+}
+```
+
+### 注解方式完成接口方法配置
+
+```java
+package com.charlie.mapper;
+
+import com.charlie.entity.Monster;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
+
+// MonsterAnnotation：使用注解的方式来配置接口
+public interface MonsterAnnotation {
+    // 添加monster
+    /*
+    1. 使用注解方式配置接口方法addMonster
+        <insert id="addMonster" parameterType="Monster" useGeneratedKeys="true" keyProperty="id">
+            INSERT INTO `monster`(`age`, `birthday`, `email`, `gender`, `name`, `salary`) VALUES
+                (#{age}, #{birthday}, #{email}, #{gender}, #{name}, #{salary});
+        </insert>
+    2. useGeneratedKeys = true 返回自增长的值
+    3. keyProperty = "id" 自增值对应的对象的属性
+    4. keyColumn = "id" 自增值对应表的字段
+    5. 如果keyColumn和ketProperty名字一致，则可以省略keyColumn，建议都写上
+     */
+    @Insert("INSERT INTO `monster`(`age`, `birthday`, `email`, `gender`, `name`, `salary`) VALUES " +
+            "(#{age}, #{birthday}, #{email}, #{gender}, #{name}, #{salary})")
+    @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
+    public void addMonster(Monster monster);
+
+    // 根据id删除一个monster
+    /* xml文件中的配置
+    <delete id="delMonster" parameterType="Integer">
+        DELETE FROM `monster` WHERE id=#{id}
+    </delete>
+     */
+    @Delete("DELETE FROM `monster` WHERE id=#{id}")
+    public void delMonster(Integer id);
+
+    // 修改Monster
+    /* xml文件配置
+        <update id="updateMonster" parameterType="Monster">
+            UPDATE `monster` SET `age`=#{age}, `birthday`=#{birthday}, `email`=#{email}, `gender`=#{gender}, `name`=#{name},
+                    `salary`=#{salary} WHERE `id`=#{id};
+        </update>
+     */
+    @Update("UPDATE `monster` SET `age`=#{age}, `birthday`=#{birthday}, `email`=#{email}, `gender`=#{gender}, `name`=#{name}, " +
+            "`salary`=#{salary} WHERE `id`=#{id}")
+    public void updateMonster(Monster monster);
+
+    // 查询-根据id
+    /* xml文件配置
+    <select id="getMonsterById" parameterType="Integer" resultType="Monster">
+        SELECT * FROM `monster` WHERE `id`=#{id};
+    </select>
+     */
+    @Select("SELECT * FROM `monster` WHERE `id`=#{id}")
+    public Monster getMonsterById(Integer id);
+
+    // 查询所有的Monster
+    /* xml文件配置
+        <select id="findAllMonsters" resultType="Monster">
+            SELECT * FROM `monster`;
+        </select>
+     */
+    @Select("SELECT * FROM `monster`")
+    public List<Monster> findAllMonsters();
+}
+```
+
+- 使用注解方法配置接口方法，需要在 `mybatis-config.xml`中配置
+
+```xml
+<mappers>
+  <!--使用xml文件配置MonsterMapper接口的房啊-->
+  <!--<mapper resource="com/charlie/mapper/MonsterMapper.xml"/>-->
+
+  <!-- 通过注解方式配置
+  1. 如果是通过注解的方式，可不再使用MonsterMapper.xml
+  2. 但是还是需要在mybatis-config.xml中注册/引入含注解的类
+  3. 如果没有引入，则不能使用
+  -->
+  <mapper class="com.charlie.mapper.MonsterAnnotation"/>
+</mappers>
+```
+
+```java
+package com.charlie.mapper;
+
+// 测试注解方式配置接口方法
+public class MonsterAnnotationTest {
+
+    private SqlSession sqlSession;
+    private MonsterAnnotation monsterAnnotation;
+
+    @Before
+    public void init() {
+        sqlSession = MyBatisUtils.getSqlSession();
+        monsterAnnotation = sqlSession.getMapper(MonsterAnnotation.class);
+        // 返回的依然是一个接口的代理对象：class com.sun.proxy.$Proxy11
+        System.out.println("monsterAnnotation=" + monsterAnnotation.getClass());
+    }
+
+    @Test
+    public void addMonster() {
+        Monster monster = new Monster();
+        monster.setAge(120);
+        monster.setBirthday(new Date());
+        monster.setEmail("kiki@qq.com");
+        monster.setGender(1);
+        monster.setName("金角大王");
+        monster.setSalary(1020.0);
+        // 使用在接口方法中注解的方式完成配置
+        monsterAnnotation.addMonster(monster);
+
+        // 添加后monster的id
+        System.out.println("添加后monster:id=" + monster.getId());
+
+        if (sqlSession != null) {
+            sqlSession.commit();
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+}
+```
+
+| ![img_11.png](img_11.png) | ![img_12.png](img_12.png) |
+|---------------------------|---------------------------|
+
+## mybatis-config.xml配置文件详解
+
+1. mybatis的核心配置文件(`mybatis-config.xml`)，比如配置jdbc连接信息，注册mapper等等
+2. ![img_13.png](img_13.png)
+
+### properties属性
+
+- 可以通过该属性，指定一个外部的 `jdbc.properties` 文件，引入jdbc连接信息
+- [jdbc.properties文件](mybatis_quickstart/src/main/resources/jdbc.properties)
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+   <properties resource="jdbc.properties"/>
+   <environments default="development">
+      <environment id="development">
+         <!--配置事务管理器-->
+         <transactionManager type="JDBC"/>
+         <!--配置数据源
+         1. 可以使用外部的properties文件来设置相关的值
+         2. 这个属性文件，需要统一的放在resources目录，/类加载路径
+         -->
+         <dataSource type="POOLED">
+            <!--配置驱动-->
+            <property name="driver" value="${jdbc.driver}"/>
+            <property name="url" value="${jdbc.url}"/>
+            <property name="username" value="${jdbc.user}"/>
+            <property name="password" value="${jdbc.pwd}"/>
+         </dataSource>
+      </environment>
+   </environments>
+</configuration>
+```
+
+### setting全局参数定义
+
+- setting列表通常使用默认
+  - ![img_14.png](img_14.png)
+- ![img_15.png](img_15.png)
+
+### typeAliases别名处理器
+
+1. 别名是为Java类型命名一个短名字，它只和xml配置有关，用来减少类名重复的部分
+   - ![img_16.png](img_16.png)
+2. ![img_17.png](img_17.png)
+
+### typeHandlers类型处理器
+
+1. 用于java类型和jdbc类型映射
+   - ![img_18.png](img_18.png)
+
+| ![img_19.png](img_19.png) | ![img_20.png](img_20.png) |
+|---------------------------|---------------------------|
+
+### environments环境
+
+1. resource注册Mapper文件：XXXMapper.xml文件
+   - ![img_21.png](img_21.png)
+2. class：接口注解实现
+   - ![img_22.png](img_22.png)
+3. url：外部路径，使用很少
+4. package方式注册
+   - ![img_23.png](img_23.png)
