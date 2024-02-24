@@ -43,6 +43,12 @@
     2. 这里可以通过copy path from source root
     -->
     <mappers>
-        <mapper resource="com/charlie/mapper/MonsterMapper.xml"/>
+        <!--<mapper resource="com/charlie/mapper/MonsterMapper.xml"/>-->
+        <!--
+        1. 如果是通过注解的方式，可不再使用MonsterMapper.xml
+        2. 但是还是需要在mybatis-config.xml中注册/引入含注解的类
+        3. 如果没有引入，则不能使用
+        -->
+        <mapper class="com.charlie.mapper.MonsterAnnotation"/>
     </mappers>
 </configuration>

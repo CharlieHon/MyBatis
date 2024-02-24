@@ -516,4 +516,12 @@ public class MonsterMapperTest {
 
 1. 在开发MyBatis程序时，比如执行测试方法，往往需要查看程序底层发给MySQL的SQL语句到底是什么
 2. 可以通过**日志输出**来实现
-   - ![img_12.png](img_9.png)
+   - ![日志输出](img_9.png)
+
+## MyBatis底层机制
+
+略
+
+## 原生API和注解的方式
+
+

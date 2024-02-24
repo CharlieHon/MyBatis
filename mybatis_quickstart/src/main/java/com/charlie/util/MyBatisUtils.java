@@ -10,6 +10,7 @@ import java.io.InputStream;
 
 // 这是一个工具类，可以得到SqlSession
 public class MyBatisUtils {
+    // 会话工厂，根据配置文件创建工厂，可以创建SqlSession(会话，类似一个连接)
     private static SqlSessionFactory sqlSessionFactory;
 
     // 编写静态代码块，初始化sqlSessionFactory
@@ -27,7 +28,7 @@ public class MyBatisUtils {
         }
     }
 
-    // 编写方法，返回SqlSession对象-会话
+    // 编写方法，返回SqlSession对象-会话，操作数据库DB(发出SQL语句，完成增删改查)
     public static SqlSession getSqlSession() {
         return sqlSessionFactory.openSession();
     }
