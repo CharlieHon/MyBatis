@@ -1020,3 +1020,300 @@ public class User { // entity
 
 1. 解决表字段和对象属性名不一致的问题,也支持使用字段别名
 2. 如果 `MyBatis-Plus`,处理就比较见到那,可以使用注解 `@TableField`来解决,还可以使用 `@TableName`
+
+## 动态SQL语句-更复杂的查询业务需求
+
+1. 动态SQL是MyBatis的强大特性之一
+2. 使用JDBC或其它类似的框架,根据不同的条件拼接SQL语句非常麻烦,例如拼接时要确保不能忘记添加必要的空格,还要注意去掉列表最后一个列名的逗号等
+3. SQL映射语句中的强大的动态SQL语句,可以很好的解决这个问题
+4. ![img_24.png](img_24.png)
+
+### 动态SQL常用标签
+
+动态SQL提供了几种常用的标签,类似Java的控制语句:
+1. if-判断
+2. where-拼接where子句
+3. choose-when-otherwise-类似java的switch语句,注意是单分支
+4. foreach-类似in
+5. trim-替换关键字/定制元素的功能
+6. set-在update的set中,可以保证进入set标签的属性被修改,而没有进入set的保持原来的值
+
+### 案例演示
+
+```java
+package com.charlie.mapper;
+
+public interface MonsterMapper {
+    // 根据age查询结果,测试if
+    public List<Monster> findMonsterByAge(@Param(value = "age") Integer age);
+    // 根据id和age查询结果.测试where
+    public List<Monster> findMonsterByIdAndName(Monster monster);
+    // 测试choose标签的使用
+    public List<Monster> findMonsterByIdOrName_choose(Map<String, Object> map);
+    // 测试foreach标签
+    public List<Monster> findMonsterById_forEach(Map<String, Object> m);
+    // 测试 trim
+    public List<Monster> findMonsterByName_trim(Map<String, Object> map);
+    // 测试 set
+    public void updateMonster_set(Map<String, Object> map);
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.charlie.mapper.MonsterMapper">
+    <!--
+    1. 配置/实现public List<Monster> findMonsterByAge(@Param(value = "age") Integer age);
+    2. 请查询age大于10的所欲妖怪,如果输入的age不大于0,则输出所有的妖怪
+    3. 按照以前的方式来配置->问题
+            如果使用原来的 #{age},在test表达式中取不出参数值
+    4. 解决方案是使用 @Param
+    -->
+    <select id="findMonsterByAge" parameterType="Integer" resultType="Monster">
+        SELECT * FROM `monster` WHERE 1=1
+        <if test="age > 0">
+            AND `age`>#{age}
+        </if>
+    </select>
+
+    <!--
+    1. 配置/实现public List<Monster> findMonsterByIdAndName(Monster monster);
+    2. 查询id大于4,且名字是青牛怪的记录,如果名字为空,则不包含名字条件;如果id小于等于0,则不包含id条件
+    3. 如果传入参数是对象,那么在 <if test=""> 的test标签中直接使用属性名即可
+    4. where标签:会在阻止动态sql时,加上where
+    5. mybatis底层会自动地去掉多余的AND
+    -->
+    <select id="findMonsterByIdAndName" parameterType="Monster" resultType="Monster">
+        SELECT * FROM `monster` -- 不需要再加 where,下面的where标签即是
+        <where>
+            <if test="id > 0">
+                AND `id`>#{id}
+            </if>
+            <if test="name != null and name != ''">
+                AND `name`=#{name}
+            </if>
+        </where>
+    </select>
+
+    <!--
+    1. 配置/实现public List<Monster> findMonsterByIdOrName_choose(Map<String, Object> map);
+    2.  1) 如果name不为空,就按名字查询
+        2) 如果指定的id>0,就按id查询
+        3) 如果都不符合,就查询 salary > 1000 的
+    3. 使用mybatis提供的 choose-when-otherwise完成
+    -->
+    <select id="findMonsterByIdOrName_choose" parameterType="map" resultType="Monster">
+        SELECT * FROM `monster`
+        <choose>
+            <when test="name != null and name != ''">
+                WHERE `name`=#{name}
+            </when>
+            <when test="id > 0">
+                WHERE `id`>#{id}
+            </when>
+            <otherwise>
+                WHERE `salary`>1000
+            </otherwise>
+        </choose>
+    </select>
+    
+    <!--
+    1. 配置/实现public List<Monster> findMonsterById_forEach(Map<String, Object> map);
+    2. 查询id为 4, 5, 6的妖怪
+    3. 使用 foreach 标签
+    4. 入参map中会如何传入id的值,k-v.如ids-[集合,把比如List]
+    -->
+    <select id="findMonsterById_forEach" parameterType="map" resultType="Monster">
+        SELECT * FROM `monster`
+        <!--
+        1. where标签
+        2. 再写入响应的代码,比如判断ids是否值为空
+        3. 如果ids不为空,则使用foreach进行遍历
+        4. collection="ids":对应入参的key
+        5. item="id":在遍历ids集合时,每次取出的值,对应的变量为id
+        6. open="(":对应的就是sql (4, 5, 6) 中的 (
+        7. separator=",":遍历出来的多个值的分隔符号
+        8. close=")":对应的就是sql (4, 5, 6) 中最后的 )
+        9. #{id}:对应的前面的 item="id"
+        -->
+        <if test="ids != null and ids != ''">
+            <where>
+                id IN
+                <foreach collection="ids" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </where>
+        </if>
+    </select>
+
+    <!--
+    1. 配置/实现public List<Monster> findMonsterByName_trim(Map<String, Object> map);
+    2. 按照名字和年龄查询妖怪,如果sql语句开头有 and | or 就替换成 where
+    3. 使用where标签会加入where标签,同时去掉多余的AND
+        where元素只会在子元素返回的内容开头有 AND 或 OR 的时候,根据条件去掉多余的 AND
+    4. <trim prefix="WHERE" prefixOverrides="and|or|hsp">:如果子句的开头有and或or或者hsp,
+        就将其去除多余的
+    5. 如下面的hsp,虽然非法,但是是在第一个子句的开头,始终都会被去掉,所以不会报错
+    -->
+    <select id="findMonsterByName_trim" parameterType="map" resultType="Monster">
+        select * from `monster`
+        <trim prefix="WHERE" prefixOverrides="and|or|hsp">
+            <if test="name != null and name != ''">
+                hsp `name`=#{name}
+            </if>
+            <if test="age != null and age != ''">
+                AND `age`>#{age}
+            </if>
+        </trim>
+    </select>
+
+    <!--
+    1. 配置/实现public void updateMonster_set(Map<String, Object> map);
+    2. 对指定id的妖怪进行属性修改,如果没有设置的属性,则保持原来的值
+    3. 入参要根据SQL语句配合
+    4. set标签中sql语句都加上逗号, 最终多余的逗号会被去掉,但是不会自动加上逗号,注意!
+    -->
+   <update id="updateMonster_set" parameterType="map">
+       UPDATE `monster`
+       <set>
+            <if test="age != null and age != ''">
+                `age`=#{age},
+            </if>
+           <if test="email != null and email != ''">
+               `email`=#{email},
+           </if>
+           <if test="name != null and name != ''">
+               `name`=#{name},
+           </if>
+           <if test="birthday != null and birthday != ''">
+               `birthday`=#{birthday},
+           </if>
+           <if test="salary != null and salary != ''">
+               `salary`=#{salary},
+           </if>
+           <if test="gender != null and gender != ''">
+               `gender`=#{gender},
+           </if>
+       </set>
+       WHERE `id`=#{id}
+   </update>
+</mapper>
+```
+
+```java
+package com.charlie.mapper;
+
+public class MonsterMapperTest {
+    private SqlSession sqlSession;
+    private MonsterMapper monsterMapper;
+
+    @Before
+    public void init() {
+        sqlSession = MyBatisUtils.getSqlSession();
+        monsterMapper = sqlSession.getMapper(MonsterMapper.class);
+        System.out.println("monsterMapper=" + monsterMapper.getClass());
+    }
+
+    // 测试 if 标签
+    @Test
+    public void findMonsterByAge() {
+        List<Monster> monsters = monsterMapper.findMonsterByAge(-1);
+        for (Monster monster : monsters) {
+            System.out.println("monster=" + monster);
+        }
+
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+
+    // 测试 where 标签
+    @Test
+    public void findMonsterByIdAndName() {
+        Monster monster = new Monster();
+        monster.setId(4);
+        monster.setName("");
+        List<Monster> monsters = monsterMapper.findMonsterByIdAndName(monster);
+        for (Monster monster1 : monsters) {
+            System.out.println("monster=" + monster1);
+        }
+
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+
+    // 测试 choose-when-otherwise 标签
+    @Test
+    public void findMonsterByIdOrName_choose() {
+        Map<String, Object> map = new HashMap<>();
+        //map.put("name", "青牛怪");
+        map.put("id", -1);
+        List<Monster> monsters = monsterMapper.findMonsterByIdOrName_choose(map);
+        for (Monster monster : monsters) {
+            System.out.println("monster=" + monster);
+        }
+
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+
+    // 测试 foreach
+    @Test
+    public void findMonsterById_forEach() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("ids", Arrays.asList(4, 5, 6));
+        List<Monster> monsters = monsterMapper.findMonsterById_forEach(map);
+        for (Monster monster : monsters) {
+            System.out.println("monster=" + monster);
+        }
+
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+
+    // 测试 trim
+    @Test
+    public void findMonsterByName_trim() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("name", "青牛怪");
+        map.put("age", 20);
+        List<Monster> monsters = monsterMapper.findMonsterByName_trim(map);
+        for (Monster monster : monsters) {
+            System.out.println("monster=" + monster);
+        }
+
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+
+    // 测试 set标签
+    @Test
+    public void updateMonster_set() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", 8);
+        map.put("name", "老鼠精");
+        map.put("age", 125);
+        monsterMapper.updateMonster_set(map);
+
+        // 修改需要commit
+        if (sqlSession != null) {
+            sqlSession.commit();
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+}
+```
