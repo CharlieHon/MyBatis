@@ -17,6 +17,7 @@
     <!--在modules指定管理哪些子模块-->
     <modules>
         <module>mybatis_quickstart</module>
+        <module>xml-mapper</module>
     </modules>
 
     <!--加入依赖-->
@@ -40,6 +41,12 @@
             <version>4.12</version>
             <!--scope表示该jar包的作用范围在test目录下-->
             <scope>test</scope>
+        </dependency>
+        <!--javabean注解-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.4</version>
         </dependency>
     </dependencies>
 

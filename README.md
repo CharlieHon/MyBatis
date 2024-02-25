@@ -792,3 +792,231 @@ public class MonsterAnnotationTest {
 3. url：外部路径，使用很少
 4. package方式注册
    - ![img_23.png](img_23.png)
+
+## xxxMapper.xml-SQL映射文件
+
+1. `MyBatis`的真正强大在于它的语句映射(在XxxMapper.xml),它跟具有相同功能的JDBC代码相比节省了将近95%的代码
+2. SQL映射文件常用的几个顶级元素
+   1) cache:该命名空间的缓存配置
+   2) cache-ref:引用其它命名空间的缓存配置
+   3) resultMap:描述如何从数据库结果集中加载对象,是最复杂也是最强大的元素
+   4) parameterType:将会传入这条语句的参数的类全限定名或别名
+   5) sql:可被其它语句引用的可重用语句块
+   6) insert(插入);update(更新);delete(删除);select(查询)
+
+### parameterType(输入参数类型)
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+1. 这是一个mapper xml文件
+2. 该文件可以去实现对应的接口的方法
+3. namespace指定该xml文件和哪个接口对应
+-->
+<mapper namespace="com.charlie.mapper.MonsterMapper">
+    <!--
+    1. 配置/实现 public List<Monster> findMonsterByNameORId(Monster monster);
+    2. 通过id或者名字查询
+    3. `id`=#{id}： `id`表示表的字段，#{id}表示传入monster对象的属性名
+    -->
+    <select id="findMonsterByNameORId" parameterType="Monster" resultType="Monster">
+        SELECT * FROM `monster` WHERE `id`=#{id} OR `name`=#{name};
+    </select>
+
+    <!--
+    1. 配置/实现public List<Monster> findMonsterByName(String name);
+    2. 查询名字中包含 "精" 的妖怪
+    3. 模糊查询的使用，取值需要使用 ${name}
+    -->
+    <select id="findMonsterByName" parameterType="String" resultType="Monster">
+        SELECT * FROM `monster` WHERE `name` LIKE '%${name}%';
+    </select>
+    <!--
+    1. 配置/实现 public List<Monster> findMonsterByIdAndSalary_ParameterHashMap(Map<String, Object> map);
+    2. 查询 id > 3 并且 salary > 3000 的妖怪，要求使用HashMap形式参数
+    3. 如果是以map形式传入参数，当条件为`id`>#{id}，表示map中有一个k-v的key是id
+    -->
+    <select id="findMonsterByIdAndSalary_ParameterHashMap" parameterType="map" resultType="Monster">
+        SELECT * FROM `monster` WHERE `id`>#{id} AND `salary`>#{salary};
+    </select>
+
+    <!--
+    1. 配置/实现public List<Map<String, Object>> findMonsterByIdAndSalary_ParameterHspMap_ReturnHashMap(Map<String, Object> map);
+    2.查询 id > 3 并且 salary > 3000 的妖怪，要求参数类型和返回类型都是HashMap
+    -->
+    <select id="findMonsterByIdAndSalary_ParameterHspMap_ReturnHashMap" parameterType="map" resultType="map">
+        SELECT * FROM `monster` WHERE `id`>#{id} AND `salary`>#{salary};
+    </select>
+</mapper>
+```
+
+```java
+package com.charlie.mapper;
+
+public class MonsterMapperTest {
+    private SqlSession sqlSession;
+    private MonsterMapper monsterMapper;
+
+    @Before
+    public void init() {
+        sqlSession = MyBatisUtils.getSqlSession();
+        monsterMapper = sqlSession.getMapper(MonsterMapper.class);
+    }
+
+    @Test
+    public void findMonsterByNameORId() {
+        Monster monster = new Monster();
+        monster.setId(3);
+        monster.setName("青牛怪");
+        List<Monster> monsters = monsterMapper.findMonsterByNameORId(monster);
+        for (Monster monster1 : monsters) {
+            System.out.println("monster=" + monster1);
+        }
+
+        if (sqlSession != null) {
+            //sqlSession.commit();    // 查，可以省略
+            sqlSession.close();
+        }
+
+        System.out.println("OK!");
+    }
+
+    @Test
+    public void findMonsterByName() {
+        List<Monster> monsters = monsterMapper.findMonsterByName("怪");
+        for (Monster monster1 : monsters) {
+            System.out.println("monster=" + monster1);
+        }
+
+        if (sqlSession != null) {
+            //sqlSession.commit();    // 查，可以省略
+            sqlSession.close();
+        }
+
+        System.out.println("OK!");
+    }
+
+    @Test
+    public void findMonsterByIdAndSalary_ParameterHashMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", 4);
+        map.put("salary", 1000);
+        List<Monster> monsters = monsterMapper.findMonsterByIdAndSalary_ParameterHashMap(map);
+        for (Monster monster : monsters) {
+            System.out.println("monster=" + monster);
+        }
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+
+    @Test
+    public void findMonsterByIdAndSalary_ParameterHspMap_ReturnHashMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", 4);
+        map.put("salary", 1000);
+        List<Map<String, Object>> monsters = monsterMapper.findMonsterByIdAndSalary_ParameterHspMap_ReturnHashMap(map);
+
+        // 以Map形式取出返回的结果
+        for (Map<String, Object> monsterMap : monsters) {
+            // monsterMap={birthday=2024-02-24, gender=0, name=黄风怪, id=5, salary=1010.0, age=10, email=kiki@qq.com}
+            //System.out.println("monsterMap=" + monsterMap);
+
+            // 遍历monsterMap，取出属性和对应值
+            // 方式一：keySet()
+            //Set<String> keys = monsterMap.keySet();
+            //for (String key : keys) {
+            //    System.out.println(key + "=>" + monsterMap.get(key));
+            //}
+
+            // 方式二：entrySet()
+            for (Map.Entry<String, Object> entry : monsterMap.entrySet()) {
+                System.out.println(entry.getKey() + "=>" + entry.getValue());
+            }
+
+            System.out.println("********");
+        }
+
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+        System.out.println("OK!");
+    }
+}
+```
+
+### resultMap(结果集映射)
+
+- 当实体类的属性和表的字段不一致时,可以通过 `resultMap` 进行映射,从而屏蔽实体类属性名和表的字段名不同的问题
+- 当不一致时,返回结果集的属性值为默认值,null或者定义属性时的值(如`private String username = "jack";`)
+
+```mysql
+# 创建user表
+CREATE TABLE `user` (
+	`user_id` INT NOT NULL AUTO_INCREMENT,
+	`user_email` VARCHAR(255) DEFAULT '',
+	`user_name` VARCHAR(255) DEFAULT '',
+	PRIMARY KEY (`user_id`)
+)CHARSET=utf8;
+```
+
+```java
+package com.charlie.entity;
+
+@Setter
+@Getter
+@ToString
+public class User { // entity
+    private Integer user_id;
+    private String username;
+    private String useremail;
+}
+```
+
+```sql
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.charlie.mapper.UserMapper">
+    <!--
+    1. 配置方法public void addUser(User user);
+    2. 完成添加用户的任务,注意这里的user属性和表的字段名有不一致的地方
+    -->
+    <insert id="addUser" parameterType="User">
+        INSERT INTO `user`(`user_email`, `user_name`) VALUES (#{useremail}, #{username});
+    </insert>
+
+    <!--
+    1. 配置/实现方法 public List<User> findAllUser();
+    2. 返回所有的User信息
+    3. 按照传统的方式,返回类型User会不会出什么问题?
+        如果对象属性名和表字段名一致时,就会设置值;如果不同,就会是默认值(如null或者private String username = "charlie";)!
+    4. 可以使用 resultMap解决
+    5. resultMap:表示要定义一个resultMap
+    6. id="findAllUser" => id就是指定 resultMap的id,以后可以通过id引用它
+    7. type="User"      => type就是需要返回的对象类型
+    8. <result column="user_email" property="useremail"/>: column是表是表的字段名,
+                property是返回entity的属性名
+    9. 表字段名和entity属性名并不一致也可以通过表别名解决,但是复用性不高,不推荐.用法如下:
+        select `user_id`, `user_name` as `username`, `user_email` as `useremail` from `user`;
+    -->
+    <resultMap id="findAllUser" type="User">
+        <result column="user_email" property="useremail"/>
+        <result column="user_name" property="username"/>
+    </resultMap>
+    <select id="findAllUser" resultMap="findAllUser">
+        SELECT * FROM `user`;
+--         select `user_id`, `user_name` as `username`, `user_email` as `useremail` from `user`;
+    </select>
+</mapper>
+```
+
+### 注意事项和细节
+
+1. 解决表字段和对象属性名不一致的问题,也支持使用字段别名
+2. 如果 `MyBatis-Plus`,处理就比较见到那,可以使用注解 `@TableField`来解决,还可以使用 `@TableName`
