@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.charlie.mapper.PetMapper">
+    <!--通过User的id来获取pet对象，可能有多个，因此使用List接收
+    public List<Pet> getPetByUserId(Integer userId);-->
+    <resultMap id="PetResultMap" type="Pet">
+        <id property="id" column="id"/>
+        <result property="nickname" column="nickname"/>
+        <association property="user" column="user_id" select="com.charlie.mapper.UserMapper.getUserById"/>
+    </resultMap>
+    <select id="getPetByUserId" parameterType="Integer" resultMap="PetResultMap">
+        select * from `mybatis_pet` where `user_id`=#{userId}
+    </select>
+    
+    <!--// 通过pet的id返回Pet对象
+    配置/实现 public Pet getPetById(Integer id);-->
+    <resultMap id="PetResultMap2" type="Pet">
+        <id property="id" column="id"/>
+        <result property="nickname" column="nickname"/>
+        <association property="user" column="user_id" select="com.charlie.mapper.UserMapper.getUserById"/>
+    </resultMap>
+    <select id="getPetById" parameterType="Integer" resultMap="PetResultMap2">
+        select * from `mybatis_pet` where `id`=#{id}
+    </select>
+</mapper>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.charlie.mapper.UserMapper">
+    <!--根据id返回User对象
+    1. 配置/实现 public User getUserById(Integer id);
+    2. 思路：先通过传入的id查询得到用户的信息，再通过id查询对应的宠物信息，
+        并映射到User的pets属性
+    -->
+    <resultMap id="UserResultMap" type="User">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <!--因为pets属性是集合，所以这里需要是collection标签来处理
+        1. ofType="Pet" 指定返回的集合中存放的数据类型是Pet
+        3. collection：表示pets属性是一个集合
+        4. property="pets"：表示返回的User对象的属性pets
+        5. column="id" 表示SQL语句返回的id字段对应的值
+        -->
+        <collection property="pets" column="id" ofType="Pet"
+                    select="com.charlie.mapper.PetMapper.getPetByUserId"/>
+    </resultMap>
+    <select id="getUserById" resultMap="UserResultMap" parameterType="Integer">
+        select * from `mybatis_user` where `id`=#{id};
+    </select>
+</mapper>

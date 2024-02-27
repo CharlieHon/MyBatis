@@ -1542,3 +1542,253 @@ public interface PersonMapperAnnotation {
 
 1. 在实际开发种，还是推荐使用**xml文件配置**方式
 2. **表是否设置外键，对MyBatis进行对象/级联映射没有影响**
+
+## 映射关系多对一
+
+1. 项目中多对1的关系是一个基本的映射关系，多对1也可以理解成是1对多
+2. 如一个User可以养多只Pet
+
+```mysql
+# 映射关系多对一
+-- 创建mybatis_user表
+CREATE TABLE `mybatis_user` (
+ `id` INT PRIMARY KEY AUTO_INCREMENT,
+ `name` VARCHAR(32) NOT NULL DEFAULT ''
+)CHARSET=utf8;
+-- 创建mybatis_pet表
+CREATE TABLE `mybatis_pet` (
+ `id` INT PRIMARY KEY AUTO_INCREMENT,
+ `nickname` VARCHAR(32) NOT NULL DEFAULT '',
+ `user_id` INT,
+ FOREIGN KEY (`user_id`) REFERENCES `mybatis_user`(`id`)
+)CHARSET=utf8;
+-- 插入数据
+INSERT INTO `mybatis_user` VALUES (NULL, '宋江'), (NULL, '李逵');
+INSERT INTO `mybatis_pet` VALUES (NULL, '小白', 1), (NULL, '小黑', 1), (NULL, '阿星', 2), (NULL, '阿宝', 2);
+```
+
+```java
+package com.charlie.entity;
+
+@Getter
+@Setter
+//@ToString
+public class Pet {
+    /**
+     * -- 创建mybatis_pet表
+     * CREATE TABLE `mybatis_pet` (
+     *  `id` INT PRIMARY KEY AUTO_INCREMENT,
+     *  `nickname` VARCHAR(32) NOT NULL DEFAULT '',
+     *  `user_id` INT,
+     *  FOREIGN KEY (`user_id`) REFERENCES `mybatis_user`(`id`)
+     * )CHARSET=utf8;
+     */
+    private Integer id;
+    private String nickname;
+    private User user;  // 一个pet对应的一个user对象
+
+    @Override
+    public String toString() {
+        return "Pet{" +
+                "id=" + id +
+                ", nickname='" + nickname + '\'' +
+                '}';
+    }
+}
+```
+
+```java
+package com.charlie.entity;
+
+@Getter
+@Setter
+//@ToString   // 会造成栈溢出
+public class User {
+    /**
+     * CREATE TABLE `mybatis_user` (
+     *  `id` INT PRIMARY KEY AUTO_INCREMENT,
+     *  `name` VARCHAR(32) NOT NULL DEFAULT ''
+     * )CHARSET=utf8;
+     */
+    private Integer id;
+    private String name;
+    // 因为一个User对象可以养多条宠物，mybatis使用集合体现这个关系
+    private List<Pet> pets;
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                '}';
+    }
+}
+```
+
+### 配置XxxMapper.xml方式
+
+```java
+package com.charlie.mapper;
+
+public interface PetMapper {
+    // 通过User的id来获取pet对象，可能有多个，因此使用List接收
+    public List<Pet> getPetByUserId(Integer userId);
+    // 通过pet的id返回Pet对象
+    public Pet getPetById(Integer id);
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.charlie.mapper.PetMapper">
+    <!--通过User的id来获取pet对象，可能有多个，因此使用List接收
+    public List<Pet> getPetByUserId(Integer userId);-->
+    <resultMap id="PetResultMap" type="Pet">
+        <id property="id" column="id"/>
+        <result property="nickname" column="nickname"/>
+        <association property="user" column="user_id" select="com.charlie.mapper.UserMapper.getUserById"/>
+    </resultMap>
+    <select id="getPetByUserId" parameterType="Integer" resultMap="PetResultMap">
+        select * from `mybatis_pet` where `user_id`=#{userId}
+    </select>
+    
+    <!--// 通过pet的id返回Pet对象
+    配置/实现 public Pet getPetById(Integer id);-->
+    <resultMap id="PetResultMap2" type="Pet">
+        <id property="id" column="id"/>
+        <result property="nickname" column="nickname"/>
+        <association property="user" column="user_id" select="com.charlie.mapper.UserMapper.getUserById"/>
+    </resultMap>
+    <select id="getPetById" parameterType="Integer" resultMap="PetResultMap2">
+        select * from `mybatis_pet` where `id`=#{id}
+    </select>
+</mapper>
+```
+
+```java
+package com.charlie.mapper;
+
+public interface UserMapper {
+    // 根据id返回User对象
+    public User getUserById(Integer id);
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.charlie.mapper.UserMapper">
+    <!--根据id返回User对象
+    1. 配置/实现 public User getUserById(Integer id);
+    2. 思路：先通过传入的id查询得到用户的信息，再通过id查询对应的宠物信息，
+        并映射到User的pets属性
+    -->
+    <resultMap id="UserResultMap" type="User">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <!--因为pets属性是集合，所以这里需要是collection标签来处理
+        1. ofType="Pet" 指定返回的集合中存放的数据类型是Pet
+        3. collection：表示pets属性是一个集合
+        4. property="pets"：表示返回的User对象的属性pets
+        5. column="id" 表示SQL语句返回的id字段对应的值
+        -->
+        <collection property="pets" column="id" ofType="Pet"
+                    select="com.charlie.mapper.PetMapper.getPetByUserId"/>
+    </resultMap>
+    <select id="getUserById" resultMap="UserResultMap" parameterType="Integer">
+        select * from `mybatis_user` where `id`=#{id};
+    </select>
+</mapper>
+```
+
+- [PetMapperTest.java](mybatis-mapping/src/test/java/com/charlie/mapper/PetMapperTest.java)
+- [UserMapperTest.java](mybatis-mapping/src/test/java/com/charlie/mapper/UserMapperTest.java)
+
+### 注解方式
+
+```java
+package com.charlie.mapper;
+
+import com.charlie.entity.Pet;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
+
+public interface PetMapperAnnotation {
+    /**
+     * 通过User的id来获取pet对象，可能有多个，因此使用List接收
+     *     public List<Pet> getPetByUserId(Integer userId);-->
+     *     <resultMap id="PetResultMap" type="Pet">
+     *         <id property="id" column="id"/>
+     *         <result property="nickname" column="nickname"/>
+     *         <association property="user" column="user_id" select="com.charlie.mapper.UserMapper.getUserById"/>
+     *     </resultMap>
+     *     <select id="getPetByUserId" parameterType="Integer" resultMap="PetResultMap">
+     *         select * from `mybatis_pet` where `user_id`=#{userId}
+     *     </select>
+     * 1. 这里的id就是给@Results 起个名字，方便复用
+     * 2. @ResultMap("PetResultMap") 引用上面定义的 @Results
+     */
+    @Select("select * from `mybatis_pet` where `user_id`=#{id}")
+    @Results(id = "PetResultMap", value = {
+            @Result(id = true, property = "id", column = "id"),
+            @Result(property = "nickname", column = "nickname"),
+            @Result(property = "user", column = "user_id", one = @One(select = "com.charlie.mapper.UserMapperAnnotation.getUserById"))
+    })
+    public List<Pet> getPetByUserId(Integer userId);
+
+    /**
+     * 通过pet的id返回Pet对象
+     *     <resultMap id="PetResultMap2" type="Pet">
+     *         <id property="id" column="id"/>
+     *         <result property="nickname" column="nickname"/>
+     *         <association property="user" column="user_id" select="com.charlie.mapper.UserMapper.getUserById"/>
+     *     </resultMap>
+     *     <select id="getPetById" parameterType="Integer" resultMap="PetResultMap2">
+     *         select * from `mybatis_pet` where `id`=#{id}
+     *     </select>
+     */
+    @Select("select * from `mybatis_pet` where `id`=#{id}")
+    @ResultMap("PetResultMap")
+    public Pet getPetById(Integer id);
+}
+```
+
+```java
+package com.charlie.mapper;
+
+import com.charlie.entity.User;
+import org.apache.ibatis.annotations.Many;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
+import org.apache.ibatis.annotations.Select;
+
+public interface UserMapperAnnotation {
+    /**
+     * 注解形式的配置就是对应xml文件配置的改写
+     *     <resultMap id="UserResultMap" type="User">
+     *         <id property="id" column="id"/>
+     *         <result property="name" column="name"/>
+     *         <collection property="pets" column="id" ofType="Pet"
+     *                     select="com.charlie.mapper.PetMapper.getPetByUserId"/>
+     *     </resultMap>
+     *     <select id="getUserById" resultMap="UserResultMap" parameterType="Integer">
+     *         select * from `mybatis_user` where `id`=#{id};
+     *     </select>
+     */
+    @Select("select * from `mybatis_user` where `id`=#{id}")
+    @Results({
+            @Result(id = true, property = "id", column = "id"),
+            @Result(property = "name", column = "name"),
+            // 这里需要注意，pets属性user对应的是集合
+            @Result(property = "pets", column = "id",
+                    many = @Many(select = "com.charlie.mapper.PetMapperAnnotation.getPetByUserId"))
+    })
+    public User getUserById(Integer id);
+}
+```
