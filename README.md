@@ -1317,3 +1317,228 @@ public class MonsterMapperTest {
     }
 }
 ```
+
+## 映射关系一对一
+
+1. 项目中1对1的关系是一个基本的映射关系，比如：Person(人)-IDCard(身份证)
+2. 在Mybatis中可以通过配置`XxxMapper.xml`文件或者通过注解方式实现1对1
+3. 这里实现的查询是指通过1对1，查询person信息，同时**级联查询**到对应的IdenCard信息
+
+```mysql
+# 映射关系——一对一
+USE `mybatis`;
+-- 创建person表
+CREATE TABLE `person` (
+ `id` INT PRIMARY KEY AUTO_INCREMENT,
+ `name` VARCHAR(32) NOT NULL DEFAULT '',
+ `card_id` INT,	-- 对应idencard的主键id
+ FOREIGN KEY (`card_id`) REFERENCES `idencard`(`id`) -- 外键
+)CHARSET=utf8;
+-- 创建 idencard表
+CREATE TABLE `idencard` (
+ `id` INT PRIMARY KEY AUTO_INCREMENT,
+ `card_sn` VARCHAR(32) NOT NULL DEFAULT ''
+)CHARSET=utf8;
+-- 插入数据
+INSERT INTO `idencard` VALUES (1, '111111111110');
+INSERT INTO `idencard` VALUES (200, '222222222220');
+INSERT INTO `person` VALUES (1, '张三', 1);
+INSERT INTO `person` VALUES (8, '李四', 200);
+-- 结果
+SELECT * FROM `person`;
+SELECT * FROM `idencard`;
+-- 多表联查
+SELECT * FROM `person`, `idencard` WHERE `person`.id=1 AND person.card_id=idencard.id;
+```
+
+```java
+package com.charlie.entity;
+
+@ToString
+@Getter
+@Setter
+public class Person {
+    /**
+     * CREATE TABLE `person` (
+     *  `id` INT PRIMARY KEY AUTO_INCREMENT,
+     *  `name` VARCHAR(32) NOT NULL DEFAULT '',
+     *  `card_id` INT,	-- 对应idencard的主键id
+     *  FOREIGN KEY (`card_id`) REFERENCES `idencard`(`id`) -- 外键
+     * )CHARSET=utf8;
+     */
+    private Integer id;
+    private String name;
+    // 因为我们要实现一个级联操作，一个人需要对应一个身份证
+    // 所以这里需要直接定义IdenCard，属性名自定义
+    // X private Integer card_id; X
+    private IdenCard card;
+}
+```
+
+### 配置Mapper.xml方式
+
+```java
+package com.charlie.mapper;
+
+public interface IdenCardMapper {
+    // 根据id获取身份证序列号
+    public IdenCard getIdenCardById(Integer id);
+    // 通过id查询身份证信息，并返回其对应的person信息
+    public IdenCard getIdenCardById2(Integer id);
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.charlie.mapper.IdenCardMapper">
+    <!--
+    1. 据id获取身份证序列号
+    2. 配置/实现 public IdenCard getIdenCardById(Integer id);-->
+    <select id="getIdenCardById" parameterType="Integer" resultType="IdenCard">
+        select * from `idencard` where `id`=#{id};
+    </select>
+
+    <!--
+    1. 根据id查询身份证信息，并级联查询对应person的数据
+    2.public IdenCard getIdenCardById2(Integer id);
+    -->
+    <resultMap id="id1" type="IdenCard">
+        <id property="id" column="id"/>
+        <result property="card_sn" column="card_sn"/>
+        <association property="person" column="id" select="com.charlie.mapper.PersonMapper.getPersonByCardId"/>
+    </resultMap>
+    <select id="getIdenCardById2" parameterType="Integer" resultMap="id1">
+        select * from `idencard` where `id`=#{id};
+    </select>
+</mapper>
+```
+
+```java
+package com.charlie.mapper;
+
+import com.charlie.entity.Person;
+
+public interface PersonMapper {
+    // 通过id查询person，包含这个person关联的IndeCard对象
+    public Person getPersonById(Integer id);
+    // 方式2
+    public Person getPersonById2(Integer id);
+    // 根据card_id查询person信息
+    public Person getPersonByCardId(Integer card_id);
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.charlie.mapper.PersonMapper">
+    <!--
+    1. 据id获取Person对象，同时包含对应的IdenCard对象
+    2. 配置/实现 public Person getPersonById(Integer id);
+    3. 为了加深理解，先使用容易象到的方法，再分析问题
+    4. 如果简单的设置为：resultType="Person"，则person返回的属性card为null，没有实现级联查询
+    5. 自定义resultMap，定义返回的结果
+    6. 因为getPersonById最终返回的仍然是Person对象，只是有级联的对象，type仍然配置为 type="Person"
+    -->
+    <resultMap id="PersonResultMap" type="Person">
+        <!--属性按照sql语句返回结果顺序匹配-->
+        <!--<result property="id" column="id"/>-->
+        <!--id-一个Id结果，标记出作为ID的结果可以帮助提高整体性能
+        1. property="id" 表示person的属性id，通常是主键
+        2. column="id" 表示对应表的字段名
+        -->
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <!-- association：一个复杂类型的关联
+        1. property="card" 表示对Person对象的card属性
+        2. javaType="IdenCard" 表示card属性的类型
+        3. column="id" 是从限免的sql语句中查询返回的字段
+        -->
+        <association property="card" javaType="IdenCard">
+            <result property="id" column="id"/>
+            <result property="card_sn" column="card_sn"/>
+        </association>
+    </resultMap>
+    <select id="getPersonById" parameterType="Integer" resultMap="PersonResultMap">
+        SELECT * FROM `person`, `idencard` WHERE `person`.id=#{id} AND person.card_id=idencard.id;
+    </select>
+
+    <!--
+    1. 配置/实现方式二：public Person getPersonById2(Integer id);
+    2. 这里的方式和前面的不同：
+        1) 先通过 select * from `person` where `id`=#{id} 返回person的信息
+        2) 再通过card_id值，再执行操作，得到IdenCard数据
+    -->
+    <resultMap id="PersonResultMap2" type="Person">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <!--
+        1. 第二种方式核心思想：将多表查询，分解为多条单表操作，这样简洁易操作，复用性强，推荐！
+        2. 而且可以复用前面已经写好的方法-组合使用！在表很多的情况下，非常实用
+        3. property="card" 表示Person对象的card属性
+        4. column="card_id" 是 select * from `person` where `id`=#{id} 返回的字段card_id
+        5. 返回的字段card_id值，会作为getIdenCardById传入参数，来执行
+                select `id`, `name`, `card_id` as `hsp_id` from `person` where `id`=#{id}
+                如果使用上面的sql语句，则association中column="hsp_id"
+        -->
+        <association property="card"
+                     column="card_id"
+                     select="com.charlie.mapper.IdenCardMapper.getIdenCardById"/>
+    </resultMap>
+    <select id="getPersonById2" parameterType="Integer" resultMap="PersonResultMap2">
+        select * from `person` where `id`=#{id}
+    </select>
+
+    <!--配置/实现public Person getPersonByCardId(Integer card_id);-->
+    <select id="getPersonByCardId" parameterType="Integer" resultType="Person">
+        select * from `person` where `card_id`=#{card_id}
+    </select>
+</mapper>
+```
+
+### 注解方式
+
+```java
+package com.charlie.mapper;
+
+import com.charlie.entity.IdenCard;
+import org.apache.ibatis.annotations.Select;
+
+// 使用注解方式实现一对一映射
+public interface IdenCardMapperAnnotation {
+    @Select("select * from `idencard` where `id`=#{id}")
+    public IdenCard getIdenCardById(Integer id);
+}
+```
+
+```java
+package com.charlie.mapper;
+
+import com.charlie.entity.Person;
+import org.apache.ibatis.annotations.One;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
+import org.apache.ibatis.annotations.Select;
+
+public interface PersonMapperAnnotation {
+    // 注解实现级联查询，注解形式就是对xml配置方式的改写
+    @Select("select * from `person` where `id`=#{id}")
+    @Results({
+            @Result(id = true, property = "id", column = "id"),
+            @Result(property = "name", column = "name"),
+            @Result(property = "card", column = "card_id",
+                    one = @One(select = "com.charlie.mapper.IdenCardMapper.getIdenCardById"))
+    })
+    public Person getPersonById(Integer id);
+}
+```
+
+### 注意事项和使用细节
+
+1. 在实际开发种，还是推荐使用**xml文件配置**方式
+2. **表是否设置外键，对MyBatis进行对象/级联映射没有影响**
