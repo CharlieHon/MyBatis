@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+1. 这是一个mapper xml文件
+2. 该文件可以去实现对应的接口的方法
+3. namespace指定该xml文件和哪个接口对应
+-->
+<mapper namespace="com.charlie.mapper.MonsterMapper">
+
+    <!--
+    1. 配置二级缓存，MyBatis自带的
+    2. eviction="FIFO"：先进先出，按对象进入缓存的顺序来移除它们
+    3. flushInterval="60000"：刷新间隔，单位是毫秒
+    4. size="512"：引用数目，属性可以设置为任意整数，默认1024
+    5. readOnly="true"：制度，属性可以设置为true/false，如果只是由于读操作，建议设置为true，可以提高效率，默认false
+    -->
+    <!--<cache eviction="FIFO" flushInterval="60000" size="512" readOnly="true"/>-->
+
+    <!--配置/启用ehcache-->
+    <cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+
+    <!--配置实现getMonsterById-->
+    <select id="getMonsterById" parameterType="Integer" resultType="Monster">
+        SELECT * FROM `monster` WHERE `id`=#{id};
+    </select>
+
+    <!--配置/实现findAllMonsters
+    1. 期望从这条语句中返回结果的类全限定名或别名。
+    2. 如果返回的是集合，那应该设置为集合包含的类型(如Monster)，而不是集合本身的类型(如List)
+    3. useCache="false"：关闭该方法的二级缓存，默认为true，一般情况下不进行修改
+    -->
+    <select id="findAllMonsters" resultType="Monster" useCache="false">
+        SELECT * FROM `monster`;
+    </select>
+
+    <!--flushCache="true"，默认刷新缓存，否则可能会出现脏读-->
+    <update id="updateMonster" parameterType="Monster" flushCache="true">
+        UPDATE `monster` SET `age`=#{age}, `birthday`=#{birthday}, `email`=#{email}, `gender`=#{gender}, `name`=#{name},
+                             `salary`=#{salary} WHERE `id`=#{id};
+    </update>
+</mapper>

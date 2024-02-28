@@ -9,12 +9,12 @@
    - Java程序：连接数据库/连接池；编写SQL语句；发送SQL，完成crud
    - 问题：要自己连接数据库，即代码由程序员编写，不一定标准；程序不是通过OOP的方式来操作；
      SQL语句是写在程序中，属于硬编码，没有解耦
-   - ![img.png](img.png)
+   - ![img.png](imgs/img.png)
 2. MyBatis是一个持久层框架，前身是ibatis，在ibatis3.x时，更名为MyBatis
    - MyBatis在java和sql之间提供了更灵活的映射方案
    - MyBatis可以将对数据库表的操作(sql)等等直接剥离，写到xml配置文件，实现和java代码的解耦
    - MyBatis通过SQL操作DB，建库建表的工作需要程序员完成
-   - ![Java以MyBatis方法操作DB示意图](img_1.png)
+   - ![Java以MyBatis方法操作DB示意图](imgs/img_1.png)
 
 ## 快速入门
 
@@ -42,7 +42,7 @@ create table `monster`
 )charset=utf8;
 ```
 
-| ![img_2.png](img_2.png) | ![img_3.png](img_3.png) | ![img_4.png](img_4.png) | ![img_5.png](img_5.png) |
+| ![img_2.png](imgs/img_2.png) | ![img_3.png](imgs/img_3.png) | ![img_4.png](imgs/img_4.png) | ![img_5.png](imgs/img_5.png) |
 |-------------------------|-------------------------|-------------------------|-------------------------|
 
 ```xml
@@ -509,14 +509,14 @@ public class MonsterMapperTest {
 
 > 在运行时，子项目中的配置文件有可能没有拷贝到target中
 
-| ![img_9.png](img_6.png) | ![img_10.png](img_7.png) | ![img_11.png](img_8.png) |
+| ![img_9.png](imgs/img_6.png) | ![img_10.png](imgs/img_7.png) | ![img_11.png](imgs/img_8.png) |
 |-------------------------|--------------------------|--------------------------|
 
 ### 日志输出-查看SQL
 
 1. 在开发MyBatis程序时，比如执行测试方法，往往需要查看程序底层发给MySQL的SQL语句到底是什么
 2. 可以通过**日志输出**来实现
-   - ![日志输出](img_9.png)
+   - ![日志输出](imgs/img_9.png)
 
 ## MyBatis底层机制
 
@@ -529,7 +529,7 @@ public class MonsterMapperTest {
 - 将增删改查，使用MyBatis原生的API完成，就是直接通过`SqlSession`接口的方法来完成
   - 原生API中的参数 `String statement` 指的是调用方法的全名，
       如 `com.charlie.mapper.MonsterMapper.addMonster`，指的是接口的addMonster方法
-  - ![img_10.png](img_10.png)
+  - ![img_10.png](imgs/img_10.png)
 
 ```java
 package com.charlie.mapper;
@@ -723,13 +723,13 @@ public class MonsterAnnotationTest {
 }
 ```
 
-| ![img_11.png](img_11.png) | ![img_12.png](img_12.png) |
+| ![img_11.png](imgs/img_11.png) | ![img_12.png](imgs/img_12.png) |
 |---------------------------|---------------------------|
 
 ## mybatis-config.xml配置文件详解
 
 1. mybatis的核心配置文件(`mybatis-config.xml`)，比如配置jdbc连接信息，注册mapper等等
-2. ![img_13.png](img_13.png)
+2. ![img_13.png](imgs/img_13.png)
 
 ### properties属性
 
@@ -766,32 +766,32 @@ public class MonsterAnnotationTest {
 ### setting全局参数定义
 
 - setting列表通常使用默认
-  - ![img_14.png](img_14.png)
-- ![img_15.png](img_15.png)
+  - ![img_14.png](imgs/img_14.png)
+- ![img_15.png](imgs/img_15.png)
 
 ### typeAliases别名处理器
 
 1. 别名是为Java类型命名一个短名字，它只和xml配置有关，用来减少类名重复的部分
-   - ![img_16.png](img_16.png)
-2. ![img_17.png](img_17.png)
+   - ![img_16.png](imgs/img_16.png)
+2. ![img_17.png](imgs/img_17.png)
 
 ### typeHandlers类型处理器
 
 1. 用于java类型和jdbc类型映射
-   - ![img_18.png](img_18.png)
+   - ![img_18.png](imgs/img_18.png)
 
-| ![img_19.png](img_19.png) | ![img_20.png](img_20.png) |
+| ![img_19.png](imgs/img_19.png) | ![img_20.png](imgs/img_20.png) |
 |---------------------------|---------------------------|
 
 ### environments环境
 
 1. resource注册Mapper文件：XXXMapper.xml文件
-   - ![img_21.png](img_21.png)
+   - ![img_21.png](imgs/img_21.png)
 2. class：接口注解实现
-   - ![img_22.png](img_22.png)
+   - ![img_22.png](imgs/img_22.png)
 3. url：外部路径，使用很少
 4. package方式注册
-   - ![img_23.png](img_23.png)
+   - ![img_23.png](imgs/img_23.png)
 
 ## xxxMapper.xml-SQL映射文件
 
@@ -1026,7 +1026,7 @@ public class User { // entity
 1. 动态SQL是MyBatis的强大特性之一
 2. 使用JDBC或其它类似的框架,根据不同的条件拼接SQL语句非常麻烦,例如拼接时要确保不能忘记添加必要的空格,还要注意去掉列表最后一个列名的逗号等
 3. SQL映射语句中的强大的动态SQL语句,可以很好的解决这个问题
-4. ![img_24.png](img_24.png)
+4. ![img_24.png](imgs/img_24.png)
 
 ### 动态SQL常用标签
 
@@ -1792,3 +1792,144 @@ public interface UserMapperAnnotation {
     public User getUserById(Integer id);
 }
 ```
+
+## 缓存-提高检索效率的利器
+
+### 一级缓存
+
+1. 默认情况下，mybatis是启用一级缓存/本地缓存/localCache的，它是sqlSession级别的
+2. 同一个sqlSession接口对象调用了相同的select语句(如查询同一个id的数据)，会直接从缓存里面获取，而不是再去查询数据库
+3. 一级缓存原理图
+   - ![MyBatis一级缓存简单示意图](imgs/img_25.png)
+
+| ![img_26.png](imgs/img_26.png) | ![img_27.png](imgs/img_27.png) | ![img_28.png](imgs/img_28.png) | ![img_29.png](imgs/img_29.png) |
+|---------------------------|---------------------------|---------------------------|---------------------------|
+
+一级缓存失效分析
+1. **关闭sqlSession会话**后，再次查询，会到数据库中查询
+2. 当执行 `sqlSession.clearCache()` 会使一级缓存失效
+3. 当对同一个monster**修改**时，该对象在一级缓存会失效
+
+### 二级缓存
+
+1. 二级缓存和一级缓存都是为了提高检索效率
+2. 最大的区别就是作用域的范围不一样，一级缓存的作用域是sqlSession会话级别，在一次会话有效；
+   而二级缓存作用域是全局范围，针对不同的会话都有效。
+3. 二级缓存原理图
+   - ![二级缓存原理图](imgs/img_30.png)
+
+```xml
+<!--1. 在mybatis-config.xml配置文件中开启二级缓存-->
+    <!--配置MyBatis自带的日志输出，可以查看原生的sql，该配置应放在最前面-->
+    <settings>
+        <setting name="logImpl" value="STDOUT_LOGGING"/>
+        <!--全局性的开启或关闭所有映射器配置文件中已配置的任何缓存，默认值为true
+        可以理解这是一个总开关(二级缓存)-->
+        <setting name="cacheEnabled" value="true"/>
+    </settings>
+```
+
+| ![img_31.png](imgs/img_31.png) | ![img_32.png](imgs/img_32.png) | ![img_33.png](imgs/img_33.png) | ![img_34.png](imgs/img_34.png) |
+|---------------------------|---------------------------|---------------------------|---------------------------|
+
+```xml
+    <!--
+    1. 配置二级缓存，MyBatis自带的
+    2. eviction="FIFO"：先进先出，按对象进入缓存的顺序来移除它们
+    3. flushInterval="60000"：刷新间隔，单位是毫秒
+    4. size="512"：引用数目，属性可以设置为任意整数，默认1024
+    5. readOnly="true"：制度，属性可以设置为true/false，如果只是由于读操作，建议设置为true，可以提高效率，默认false
+   即，创建了 FIFO 的策略，每隔 60 秒刷新一次，最多存放 512 个对象而且返回的对象被认为是只读的
+    -->
+    <cache eviction="FIFO" flushInterval="60000" size="512" readOnly="true"/>
+```
+
+> MyBatis的缓存执行顺序：二级缓存>一级缓存-数据库
+
+细节说明：
+1. 不会主线一级缓存和二级缓存中有同一个数据的情况，因为二级缓存(数据)是在一级缓存关闭之后才会有的
+2. 在一级缓存中存在数据的情况下，依然会先查询二级缓存，但是二级缓存没有数据，接着会查询一级缓存
+
+### ehcache缓存
+
+1. EhCache是一个纯Java的缓存框架，具有快速、精干等特点
+2. MyBatis有自己默认的二级缓存，但是在实际项目中，往往使用的是更加专业的第三方缓存产品，作为MyBatis的二级缓存
+
+```xml
+<!--1. 加入相关依赖(pom.xml文件)-->
+<dependencies>
+    <!--引入ehcache核心库/jar包-->
+    <dependency>
+        <groupId>net.sf.ehcache</groupId>
+        <artifactId>ehcache-core</artifactId>
+        <version>2.6.11</version>
+    </dependency>
+    <!--引用需要使用的slf4j-->
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.36</version>
+    </dependency>
+    <!--引入mybatis整合ehcache框架-->
+    <dependency>
+        <groupId>org.mybatis.caches</groupId>
+        <artifactId>mybatis-ehcache</artifactId>
+        <version>1.2.1</version>
+    </dependency>
+</dependencies>
+
+<!--2. 在mybatis-config.xml打开二级缓存，默认已打开-->
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!--resource/ehcache.xml文件-->
+<ehcache>
+    <!--
+       diskStore：为缓存路径，ehcache分为内存和磁盘两级，此属性定义磁盘的缓存位置。参数解释如下：
+       user.home – 用户主目录
+       user.dir  – 用户当前工作目录
+       java.io.tmpdir – 默认临时文件路径
+     -->
+    <diskStore path="java.io.tmpdir/Tmp_EhCache"/>
+    <!--
+       defaultCache：默认缓存策略，当ehcache找不到定义的缓存时，则使用这个缓存策略。只能定义一个。
+     -->
+    <!--
+      name:缓存名称。
+      maxElementsInMemory:缓存最大数目
+      maxElementsOnDisk：硬盘最大缓存个数。
+      eternal:对象是否永久有效，一但设置了，timeout将不起作用。
+      overflowToDisk:是否保存到磁盘，当系统宕机时
+      timeToIdleSeconds:设置对象在失效前的允许闲置时间（单位：秒）。仅当eternal=false对象不是永久有效时使用，可选属性，默认值是0，也就是可闲置时间无穷大。
+      timeToLiveSeconds:设置对象在失效前允许存活时间（单位：秒）。最大时间介于创建时间和失效时间之间。仅当eternal=false对象不是永久有效时使用，默认是0.，也就是对象存活时间无穷大。
+      diskPersistent：是否缓存虚拟机重启期数据 Whether the disk store persists between restarts of the Virtual Machine. The default value is false.
+      diskSpoolBufferSizeMB：这个参数设置DiskStore（磁盘缓存）的缓存区大小。默认是30MB。每个Cache都应该有自己的一个缓冲区。
+      diskExpiryThreadIntervalSeconds：磁盘失效线程运行时间间隔，默认是120秒。
+      memoryStoreEvictionPolicy：当达到maxElementsInMemory限制时，Ehcache将会根据指定的策略去清理内存。默认策略是LRU（最近最少使用）。你可以设置为FIFO（先进先出）或是LFU（较少使用）。
+      clearOnFlush：内存数量最大时是否清除。
+      memoryStoreEvictionPolicy:可选策略(清除策略)有：LRU（最近最少使用，默认策略）、FIFO（先进先出）、LFU（最少访问次数）。
+      FIFO，first in first out，这个是大家最熟的，先进先出。
+      LFU， Less Frequently Used，就是上面例子中使用的策略，直白一点就是讲一直以来最少被使用的。如上面所讲，缓存的元素有一个hit属性，hit值最小的将会被清出缓存。
+      LRU，Least Recently Used，最近最少使用的，缓存的元素有一个时间戳，当缓存容量满了，而又需要腾出地方来缓存新的元素的时候，那么现有缓存元素中时间戳离当前时间最远的元素将被清出缓存。
+   -->
+    <defaultCache
+            eternal="false"
+            maxElementsInMemory="10000"
+            overflowToDisk="false"
+            diskPersistent="false"
+            timeToIdleSeconds="1800"
+            timeToLiveSeconds="259200"
+            memoryStoreEvictionPolicy="LRU"/>
+</ehcache>
+
+<!--在XxxMapper.xml中启用EhCache-->
+<!--配置/启用ehcache-->
+<cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+```
+
+1. MyBatis提供了一个接口Cache，只要实现该Cache接口，就可以作为二级缓存产品和MyBatis整合使用
+   - ![img_35.png](imgs/img_35.png)
+2. MyBatis默认情况(即一级缓存)是使用 `PerpetualCache` 类实现Cache接口的，是核心类
+3. 缓存的本质就是 `Map<Object, Object>`
+   - ![img_36.png](imgs/img_36.png)

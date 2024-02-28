@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!--引入外部的jdbc.properties-->
+    <properties resource="jdbc.properties"/>
+
+    <!--配置MyBatis自带的日志输出，可以查看原生的sql，该配置应放在最前面-->
+    <settings>
+        <setting name="logImpl" value="STDOUT_LOGGING"/>
+        <!--全局性的开启或关闭所有映射器配置文件中已配置的任何缓存，默认值为true
+        可以理解这是一个总开关(二级缓存)-->
+        <setting name="cacheEnabled" value="true"/>
+    </settings>
+
+    <!--配置别名，降低冗余的全限定类名书写-->
+    <typeAliases>
+        <!--<typeAlias alias="Monster" type="com.charlie.entity.Monster"/>-->
+        <!--如果一个包下有很多的类，可以直接引入包，这样该报下面的所有类名，都可以直接使用-->
+        <package name="com.charlie.entity"/>
+    </typeAliases>
+
+    <environments default="development">
+        <environment id="development">
+            <!--配置事务管理器-->
+            <transactionManager type="JDBC"/>
+            <!--配置数据源
+            1. 可以使用外部的properties文件来设置相关的值
+            2. 这个属性文件，需要统一的放在resources目录，/类加载路径
+            -->
+            <dataSource type="POOLED">
+                <!--配置驱动-->
+                <!--<property name="driver" value="com.mysql.jdbc.Driver"/>-->
+                <property name="driver" value="${jdbc.driver}"/>
+                <!--配置连接mysql的url
+                1. jdbc:mysql 连接协议
+                2. 127.0.0.1:3306：指定连接mysql的ip+port
+                3. mybatis：连接的DB
+                4. useSSL=true：表示使用安全连接
+                5. &amp;表示&符号，用于连接参数，防止解析错误
+                6. useUnicode=true：使用unicode，防止编码错误
+                7. characterEncoding=UTF-8：指定使用utf-8，防止中文乱码
+                8. 不需要记忆，理解即可
+                -->
+                <!--<property name="url" value="jdbc:mysql://127.0.0.1:3306/mybatis?useSSL=true&amp;useUnicode=true&amp;characterEncoding=UTF-8"/>-->
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.user}"/>
+                <property name="password" value="${jdbc.pwd}"/>
+            </dataSource>
+        </environment>
+    </environments>
+    <!--
+    1. 这里配置需要关联的Mapper.xml
+    2. 这里可以通过copy path from source root
+    -->
+    <mappers>
+        <!--使用xml文件配置MonsterMapper接口的房啊-->
+        <!--<mapper resource="com/charlie/mapper/MonsterMapper.xml"/>-->
+
+        <!-- 通过注解方式配置
+        1. 如果是通过注解的方式，可不再使用MonsterMapper.xml
+        2. 但是还是需要在mybatis-config.xml中注册/引入含注解的类
+        3. 如果没有引入，则不能使用
+        -->
+        <!--<mapper class="com.charlie.mapper.MonsterAnnotation"/>-->
+
+        <!--
+        1. 当一个包下有很多的Mapper.xml文件和基于注解实现的接口时，为了方便，可以以包的方式进行注册
+        2. 将包下的所有xml文件和注解接口，都进行注册
+        -->
+        <package name="com.charlie.mapper"/>
+    </mappers>
+</configuration>

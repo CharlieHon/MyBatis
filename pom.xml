@@ -20,6 +20,7 @@
         <module>xml-mapper</module>
         <module>dynamic-sql</module>
         <module>mybatis-mapping</module>
+        <module>mybatis_cache</module>
     </modules>
 
     <!--加入依赖-->
